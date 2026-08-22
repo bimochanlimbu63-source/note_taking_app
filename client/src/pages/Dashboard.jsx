@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Plus, Pin, Pencil, Trash2, Search, X, NotebookPen, Loader2 } from 'lucide-react';
+import { LogOut, Plus, Pin, Pencil, Trash2, Search, X, NotebookPen, Loader2, AlertTriangle } from 'lucide-react';
 
 function timeAgo(dateString) {
   const date = new Date(dateString);
@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [content, setContent] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState(null); // note object pending deletion
 
   const fetchNotes = async () => {
     try {
@@ -69,13 +71,15 @@ export default function Dashboard() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this note?')) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await axios.delete(`notes/${id}`);
+      await axios.delete(`notes/${deleteTarget._id}`);
       fetchNotes();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -224,7 +228,7 @@ export default function Dashboard() {
                     <Pencil size={16} />
                   </button>
                   <button
-                    onClick={() => handleDelete(note._id)}
+                    onClick={() => setDeleteTarget(note)}
                     title="Delete"
                     className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                   >
@@ -236,6 +240,36 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-red-50 text-red-600 p-2.5 rounded-full">
+                <AlertTriangle size={20} />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">Delete this note?</h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-6">
+              "{deleteTarget.title}" will be permanently deleted. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
